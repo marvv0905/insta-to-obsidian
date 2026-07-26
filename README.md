@@ -1,5 +1,5 @@
-# Insta-to-Obsidian — AI Second Brain Pipeline
-> An agentic workflow that turns Instagram Reels into structured, searchable knowledge inside Obsidian — powered by a self-hosted Discord bot running 24/7 on a Raspberry Pi 5.
+# Insta-to-Nextcloud — AI Second Brain Pipeline
+> An agentic workflow that turns Instagram Reels into structured, searchable knowledge — powered by a self-hosted Discord bot running 24/7 on a Raspberry Pi 5.
 
 ## The Problem
 
@@ -14,26 +14,26 @@ Instagram Reel Link
   Discord Bot (Python)
         │
         ▼
-  Download Reel (yt-dlp / API)
+  Download Audio (yt-dlp)
         │
         ▼
-  Transcribe Audio (Whisper / API)
+  Transcribe (faster-whisper, local)
         │
         ▼
-  Summarize into Markdown (LLM)
+  Summarize into Markdown (DeepSeek)
         │
         ▼
-  Save to Obsidian Vault
+  Save to Nextcloud (WebDAV)
         │
         ▼
-  Query via LLM / RAG plugin
+  Browse & Query in Obsidian
 ```
 
 1. **Capture** — Paste an Instagram Reel link into a private Discord channel.
-2. **Detect** — A Python bot (`discord.py`) listens for messages matching the Reel URL pattern.
-3. **Process** *(in progress)* — The reel is downloaded, transcribed, and summarized into a clean Markdown note with frontmatter (source, date, tags, key takeaways).
-4. **Store** — The note is written directly into an Obsidian vault, structured for both human browsing and LLM retrieval.
-5. **Query** — An Obsidian RAG plugin (e.g. Smart Connections) enables natural-language search across all saved reel knowledge.
+2. **Download** — Audio is extracted from the reel via yt-dlp.
+3. **Transcribe** — Speech-to-text runs locally on the Pi using faster-whisper.
+4. **Summarize** — The transcript is passed to an LLM (DeepSeek v4 Flash) which produces a structured Markdown note with frontmatter, tags, key takeaways, and the full transcript.
+5. **Store** — The note is uploaded to a self-hosted Nextcloud server via WebDAV. A symlink connects the Nextcloud folder into an Obsidian vault for browsing and querying.
 
 ## Tech Stack
 
@@ -41,11 +41,10 @@ Instagram Reel Link
 |---|---|
 | Bot framework | Python, discord.py |
 | Hosting | Raspberry Pi 5 (Linux ARM64), systemd |
-| Secrets management | python-dotenv |
-| Transcription (planned) | OpenAI Whisper / transcript API |
-| Summarization (planned) | LLM API (GPT-4o-mini / Claude Haiku) |
-| Knowledge store | Obsidian (Markdown vault) |
-| Retrieval (planned) | Obsidian RAG plugin (Smart Connections / ObsidianRAG) |
+| Audio extraction | yt-dlp + ffmpeg |
+| Transcription | faster-whisper (local, ARM-optimized) |
+| Summarization | DeepSeek v4 Flash (LLM API) |
+| Knowledge store | Nextcloud WebDAV → Obsidian |
 
 ## Getting Started
 
@@ -53,6 +52,9 @@ Instagram Reel Link
 - Python 3.12+
 - A Discord bot token ([Discord Developer Portal](https://discord.com/developers/applications))
 - A Discord server you control
+- A DeepSeek API key ([DeepSeek Platform](https://platform.deepseek.com))
+- Nextcloud server (for vault storage)
+- `ffmpeg` installed on the host (`sudo apt install ffmpeg` on Debian/Ubuntu)
 
 ### Setup
 
@@ -62,13 +64,17 @@ cd insta-to-obsidian
 
 python3 -m venv .venv
 source .venv/bin/activate
-pip install discord.py python-dotenv
+pip install discord.py python-dotenv yt-dlp faster-whisper openai
 ```
 
 Create a `bot.env` file in the project root:
 
 ```
 DISCORD_TOKEN=your_bot_token_here
+DEEPSEEK_API_KEY=your_deepseek_key_here
+NEXTCLOUD_URL=https://your-nextcloud-server
+NEXTCLOUD_USERNAME=your_username
+NEXTCLOUD_APP_PASSWORD=your_app_password
 ```
 
 Run it:
@@ -79,16 +85,17 @@ python bot.py
 
 ### Deploying for 24/7 Uptime
 
-This bot is designed to run as a `systemd` service on a Raspberry Pi (or any Linux host) so it stays online continuously and auto-restarts on crash or reboot. See [`second_brain_bot_documentation.md`](./second_brain_bot_documentation.md) for the full deployment guide, including the systemd unit file and troubleshooting steps.
+This bot is designed to run as a `systemd` service on a Raspberry Pi (or any Linux host) so it stays online continuously and auto-restarts on crash or reboot. See [`second_brain_docs.md`](./second_brain_docs.md) for the full deployment guide, including the systemd unit file and troubleshooting steps.
 
 ## Project Structure
 
 ```
 insta-to-obsidian/
 ├── bot.py                              # Main Discord bot logic
+├── pipeline.py                         # Audio download, transcription, summarization, Nextcloud save
 ├── bot.env                             # Secrets (gitignored)
 ├── instagram_reel_obsidian_PRD.md      # Product requirements & architecture
-├── second_brain_bot_documentation.md   # Setup, ops, and troubleshooting guide
+├── second_brain_docs.md                # Setup, ops, and troubleshooting guide
 └── .gitignore
 ```
 
@@ -96,10 +103,10 @@ insta-to-obsidian/
 
 - [x] Discord bot detects and acknowledges Instagram Reel links
 - [x] 24/7 deployment on Raspberry Pi 5 via systemd
-- [ ] Reel download integration (yt-dlp / transcript API)
-- [ ] Audio transcription (Whisper)
-- [ ] LLM-based Markdown summarization
-- [ ] Automated write-to-Obsidian-vault
+- [x] Reel audio download (yt-dlp + ffmpeg)
+- [x] Audio transcription (faster-whisper, local ARM-optimized)
+- [x] LLM-based Markdown summarization (DeepSeek v4 Flash)
+- [x] Save to Nextcloud via WebDAV (Obsidian-compatible frontmatter + tags)
 - [ ] RAG-based querying inside Obsidian
 - [ ] Weekly digest notes for unread summaries
 
