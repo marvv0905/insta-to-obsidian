@@ -7,7 +7,7 @@ from datetime import datetime
 import discord
 from dotenv import load_dotenv
 
-from pipeline import download_audio, save_to_nextcloud, transcribe, summarize
+from pipeline import _extract_title, download_audio, save_to_nextcloud, transcribe, summarize
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, "bot.env"))
@@ -71,7 +71,7 @@ async def on_message(message):
         await asyncio.to_thread(save_to_nextcloud, markdown)
 
         preview = _extract_preview(markdown)
-        filename = f"reel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+        filename = (_extract_title(markdown) or f"reel_{datetime.now().strftime('%Y%m%d_%H%M%S')}") + ".md"
         file = discord.File(io.BytesIO(markdown.encode("utf-8")), filename=filename)
 
         await status_msg.delete()

@@ -150,6 +150,19 @@ def _ensure_webdav_folders(webdav_base: str, folder_path: str, auth: tuple) -> N
             resp.raise_for_status()
 
 
+def _extract_title(markdown: str) -> str:
+    import re
+
+    for line in markdown.strip().split("\n"):
+        line = line.strip()
+        if line.startswith("# ") and not line.startswith("## "):
+            title = line[2:].strip()
+            title = re.sub(r'[/:*?"<>|]', "", title)
+            title = re.sub(r"\s+", "_", title)
+            return title[:80].rstrip("_")
+    return None
+
+
 def save_to_nextcloud(markdown: str) -> str:
     base_url = os.getenv("NEXTCLOUD_URL")
     username = os.getenv("NEXTCLOUD_USERNAME")
@@ -168,7 +181,8 @@ def save_to_nextcloud(markdown: str) -> str:
     auth = (username, password)
     webdav_base = f"{base_url}/remote.php/dav/files/{username}"
 
-    filename = f"reel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+    title = _extract_title(markdown) or f"reel_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    filename = f"{title}.md"
     webdav_url = f"{webdav_base}/{notes_path}/{filename}"
 
     print(f"[pipeline] Saving to Nextcloud: {webdav_url}")
