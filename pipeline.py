@@ -1,11 +1,14 @@
 import os
 import subprocess
+import sys
 import uuid
 from datetime import date
 from pathlib import Path
 
 from faster_whisper import WhisperModel
 from openai import OpenAI
+
+YT_DLP = os.path.join(os.path.dirname(sys.executable), "yt-dlp")
 
 _whisper_model = None
 
@@ -28,7 +31,7 @@ def download_audio(reel_url: str) -> Path:
     print(f"[pipeline] Downloading audio from: {reel_url}")
     result = subprocess.run(
         [
-            "yt-dlp",
+            YT_DLP,
             "-x",
             "--audio-format", "mp3",
             "-o", output_template,
