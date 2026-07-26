@@ -87,7 +87,7 @@ def summarize(transcript: str, reel_url: str) -> str:
     template = f"""---
 source: {reel_url}
 date: {today}
-tags: [topic1, topic2, topic3]
+tags: ["#tag_one", "#tag_two", "#tag_three"]
 ---
 
 # [Descriptive Title Here]
@@ -115,7 +115,8 @@ tags: [topic1, topic2, topic3]
                     "You are a precise knowledge organizer. "
                     "You receive transcripts from educational Instagram Reels and output structured Markdown notes. "
                     "Fill in the provided template using the transcript content. "
-                    "Choose 3-5 relevant tags. Keep the summary brief and focused on key takeaways. "
+                    "Choose 3-5 relevant tags in hashtag format: lowercase, no spaces, underscores between words "
+                    "(e.g., #stock_analysis, #python_tips). Keep the summary brief and focused on key takeaways. "
                     "Return ONLY the completed Markdown, no other text."
                 ),
             },
