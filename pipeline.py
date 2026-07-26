@@ -163,6 +163,8 @@ def save_to_nextcloud(markdown: str) -> str:
         )
 
     base_url = base_url.rstrip("/")
+    if "/remote.php/dav/files/" in base_url:
+        base_url = base_url.split("/remote.php/dav/files/")[0]
     auth = (username, password)
     webdav_base = f"{base_url}/remote.php/dav/files/{username}"
 
