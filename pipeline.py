@@ -2,9 +2,10 @@ import os
 import subprocess
 import sys
 import uuid
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
+import httpx
 from faster_whisper import WhisperModel
 from openai import OpenAI
 
@@ -136,3 +137,46 @@ tags: [topic1, topic2, topic3]
 
     print(f"[pipeline] Summarization complete ({len(content)} chars)")
     return content.strip()
+
+
+def _ensure_webdav_folders(webdav_base: str, folder_path: str, auth: tuple) -> None:
+    segments = [s for s in folder_path.strip("/").split("/") if s]
+    current = ""
+    for segment in segments:
+        current += f"/{segment}"
+        url = f"{webdav_base}{current}"
+        resp = httpx.request("MKCOL", url, auth=auth)
+        if resp.status_code not in (201, 405):
+            resp.raise_for_status()
+
+
+def save_to_nextcloud(markdown: str) -> str:
+    base_url = os.getenv("NEXTCLOUD_URL")
+    username = os.getenv("NEXTCLOUD_USERNAME")
+    password = os.getenv("NEXTCLOUD_APP_PASSWORD")
+    notes_path = os.getenv("NEXTCLOUD_NOTES_PATH", "IG-Bot")
+
+    if not all([base_url, username, password]):
+        raise RuntimeError(
+            "NEXTCLOUD_URL, NEXTCLOUD_USERNAME, and NEXTCLOUD_APP_PASSWORD "
+            "must be set in bot.env"
+        )
+
+    base_url = base_url.rstrip("/")
+    auth = (username, password)
+    webdav_base = f"{base_url}/remote.php/dav/files/{username}"
+
+    filename = f"reel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+    webdav_url = f"{webdav_base}/{notes_path}/{filename}"
+
+    print(f"[pipeline] Saving to Nextcloud: {webdav_url}")
+    _ensure_webdav_folders(webdav_base, notes_path, auth)
+
+    resp = httpx.put(webdav_url, content=markdown.encode("utf-8"), auth=auth)
+    if resp.status_code not in (200, 201, 204):
+        raise RuntimeError(
+            f"Nextcloud upload failed (HTTP {resp.status_code}): {resp.text}"
+        )
+
+    print(f"[pipeline] Saved to Nextcloud: {webdav_url}")
+    return webdav_url

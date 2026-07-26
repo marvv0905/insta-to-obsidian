@@ -7,7 +7,7 @@ from datetime import datetime
 import discord
 from dotenv import load_dotenv
 
-from pipeline import download_audio, transcribe, summarize
+from pipeline import download_audio, save_to_nextcloud, transcribe, summarize
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, "bot.env"))
@@ -66,6 +66,9 @@ async def on_message(message):
 
         await status_msg.edit(content="Summarizing with AI...")
         markdown = await asyncio.to_thread(summarize, transcript, reel_url)
+
+        await status_msg.edit(content="Saving to Nextcloud...")
+        await asyncio.to_thread(save_to_nextcloud, markdown)
 
         preview = _extract_preview(markdown)
         filename = f"reel_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
