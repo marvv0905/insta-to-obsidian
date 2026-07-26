@@ -12,7 +12,8 @@ Planned (TODO in code): download reel to video to transcript to LLM summary to w
 |---|---|---|
 | Bot host | Always-on runtime | Raspberry Pi 5 (Linux ARM64), systemd service |
 | Bot framework | Listens for messages, detects reel links | Python, discord.py |
-| Secrets | Stores bot token | `bot.env` (python-dotenv) |
+| Secrets | Stores bot token | `bot.env` (python-dotenv, gitignored) |
+| Version control | Code sync between Mac and Pi | Git + GitHub (private/public repo) |
 | Process manager | Keeps bot alive, auto-restarts on crash/reboot | systemd (`reelbot.service`) |
 | Pipeline (planned) | Download, transcribe, summarize, write to vault | yt-dlp/API, Whisper/API, LLM API, Obsidian REST/git |
 
@@ -26,24 +27,56 @@ Planned (TODO in code): download reel to video to transcript to LLM summary to w
 
 ### 3.2 Project Files
 ```
-discord_bot_secondBrain/
-├── .venv/          # virtual environment (Pi-native, not portable)
-├── bot.env         # DISCORD_TOKEN=xxxx (no spaces/quotes)
-└── bot.py          # main bot script
+insta-to-obsidian/
+├── .venv/                              # virtual environment (Pi-native, not portable, gitignored)
+├── bot.env                             # DISCORD_TOKEN=xxxx (gitignored, never pushed)
+├── bot.py                              # main bot script
+├── README.md                           # portfolio-facing project overview
+├── instagram_reel_obsidian_PRD.md      # product requirements doc
+└── second_brain_docs.md                # this file
 ```
 
-### 3.3 Raspberry Pi Setup
+### 3.3 GitHub Repository Setup
+Code lives in a GitHub repo and is synced to the Pi via `git pull` instead of manual file transfer.
+
+**One-time, locally (on Mac):**
 ```bash
-# On the Pi, inside the project folder
+cd ~/Desktop/nerd_stuff/insta-to-obsidian
+git init
+echo ".venv/
+bot.env" > .gitignore
+git add .
+git commit -m "initial bot"
+git remote add origin https://github.com/youruser/insta-to-obsidian.git
+git push -u origin main
+```
+
+If the remote already has commits (e.g. GitHub auto-created a README), merge histories before pushing:
+```bash
+git pull origin main --allow-unrelated-histories
+git push -u origin main
+```
+
+**One-time, on the Pi:**
+```bash
+cd ~
+git clone https://github.com/youruser/insta-to-obsidian.git
+```
+
+`bot.env` is never stored in git — it must be created manually and directly on each machine that runs the bot (Mac for local testing, Pi for production).
+
+### 3.4 Raspberry Pi Environment Setup
+```bash
+cd ~/insta-to-obsidian
 python3 -m venv .venv
 source .venv/bin/activate
 pip install discord.py python-dotenv
 deactivate
 ```
 
-Important: venvs are NOT portable across machines/architectures. Always create `.venv` fresh, directly on the Pi. Only transfer `bot.py`, `bot.env`, and requirements via `scp`/`git` — never the `.venv` folder itself.
+Important: venvs are NOT portable across machines/architectures. Always create `.venv` fresh, directly on the Pi. Never commit or transfer the `.venv` folder itself — it's gitignored for this reason.
 
-### 3.4 systemd Service
+### 3.5 systemd Service
 File: `/etc/systemd/system/reelbot.service`
 ```ini
 [Unit]
@@ -53,13 +86,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/ramm/discord_bot_secondBrain
-ExecStart=/home/ramm/discord_bot_secondBrain/.venv/bin/python3 /home/ramm/discord_bot_secondBrain/bot.py
+WorkingDirectory=/home/youruser/insta-to-obsidian
+ExecStart=/home/youruser/insta-to-obsidian/.venv/bin/python3 /home/youruser/insta-to-obsidian/bot.py
 Restart=always
 RestartSec=10
-User=ramm
-StandardOutput=append:/home/ramm/discord_bot_secondBrain/bot.log
-StandardError=append:/home/ramm/discord_bot_secondBrain/bot.log
+User=youruser
+StandardOutput=append:/home/youruser/insta-to-obsidian/bot.log
+StandardError=append:/home/youruser/insta-to-obsidian/bot.log
 
 [Install]
 WantedBy=multi-user.target
@@ -78,36 +111,55 @@ sudo systemctl start reelbot.service
 |---|---|
 | Check bot status | `sudo systemctl status reelbot.service` |
 | View live logs | `journalctl -u reelbot.service -f` |
-| View log file directly | `tail -f ~/discord_bot_secondBrain/bot.log` |
+| View log file directly | `tail -f ~/insta-to-obsidian/bot.log` |
 | Restart bot | `sudo systemctl restart reelbot.service` |
 | Stop bot | `sudo systemctl stop reelbot.service` |
 | Disable auto-start on boot | `sudo systemctl disable reelbot.service` |
 
-## 5. Updating the Code
+## 5. Updating the Code (GitHub Workflow)
 
-Whenever `bot.py` is edited (locally or via SSH/nano on the Pi directly):
+Whenever `bot.py` (or any file) is edited locally in your IDE on the Mac:
 
-1. If editing locally on Mac, sync only source files to the Pi (not `.venv`):
-   ```bash
-   scp bot.py bot.env ramm@naspi.local:~/discord_bot_secondBrain/
-   ```
-2. If new Python packages were added, install them inside the Pi's venv:
-   ```bash
-   cd ~/discord_bot_secondBrain
-   source .venv/bin/activate
-   pip install <new-package>
-   deactivate
-   ```
-3. Restart the service to apply changes:
-   ```bash
-   sudo systemctl restart reelbot.service
-   ```
-4. Confirm it's healthy:
-   ```bash
-   sudo systemctl status reelbot.service
-   ```
+**Step 1 — Commit and push from Mac:**
+```bash
+cd ~/Desktop/nerd_stuff/insta-to-obsidian
+git add .
+git commit -m "describe your change"
+git push
+```
 
-systemd does NOT auto-detect file changes — a manual restart is always required after any code edit.
+**Step 2 — Pull the update on the Pi:**
+```bash
+ssh youruser@yourpi.local
+cd ~/insta-to-obsidian
+git pull
+```
+
+**Step 3 — Install any new dependencies (only if imports changed):**
+```bash
+source .venv/bin/activate
+pip install <new-package>
+deactivate
+```
+
+**Step 4 — Restart the service to apply changes:**
+```bash
+sudo systemctl restart reelbot.service
+sudo systemctl status reelbot.service
+```
+
+systemd does NOT auto-detect file changes, and `git pull` does NOT restart the running process — a manual restart is always required after every update.
+
+### Quick Reference: Full Update Cycle
+```bash
+# On Mac
+git add . && git commit -m "update" && git push
+
+# On Pi
+ssh youruser@yourpi.local
+cd ~/insta-to-obsidian && git pull
+sudo systemctl restart reelbot.service
+```
 
 ## 6. Troubleshooting Reference
 
@@ -115,16 +167,17 @@ systemd does NOT auto-detect file changes — a manual restart is always require
 |---|---|---|
 | `ModuleNotFoundError: No module named 'discord'` | venv not activated, or package not installed in the active interpreter | `source .venv/bin/activate` then `pip install discord.py` |
 | `TypeError: expected token to be a str, received NoneType` | `.env`/`bot.env` not found or wrong filename passed to `load_dotenv()` | Confirm filename matches `load_dotenv("bot.env")`, check for hidden characters with `cat -A bot.env` |
-| `status=203/EXEC` in systemd | Path in service file is wrong or venv binary isn't executable on this OS | Fix paths in `.service` file to match actual username/folder |
+| `status=203/EXEC` in systemd | Path in service file is wrong or points to nonexistent binary | Fix paths in `.service` file to match actual username/folder |
 | `Exec format error` | venv was copied from another machine (wrong OS/architecture binaries) | `rm -rf .venv` and rebuild fresh with `python3 -m venv .venv` directly on the Pi |
+| `! [rejected] main -> main (fetch first)` on `git push` | Remote repo has commits your local repo doesn't (e.g. auto-generated README) | `git pull origin main --allow-unrelated-histories`, resolve conflicts, then push again |
 | Bot shows offline in Discord | Service crashed/failed to start | `journalctl -u reelbot.service -n 30` to see the real traceback |
 
 ## 7. Maintenance Checklist (Recurring)
 
 - After any Pi OS update or Python version upgrade, verify `.venv` still works; rebuild if broken.
-- Rotate/regenerate the Discord bot token if it's ever accidentally exposed (via Developer Portal to Bot to Reset Token), then update `bot.env` and restart the service.
+- Rotate/regenerate the Discord bot token if it's ever accidentally exposed (via Developer Portal to Bot to Reset Token), then update `bot.env` on the Pi and restart the service. Never commit a real token to GitHub, even in a private repo.
 - Periodically check `bot.log` for repeated errors or rate-limit warnings, especially once the download/transcription/summarization pipeline is added (external API failures will show here first).
-- Back up `bot.env` (token) and `bot.py` (code) outside the Pi (e.g. private git repo), since local storage failure would otherwise require full reconfiguration.
+- Keep the GitHub repo as the source of truth for code; `bot.env` stays local-only on each machine and is never version-controlled.
 
 ## 8. Next Development Steps (Pipeline TODOs)
 Inside `bot.py`, the `on_message` handler currently has placeholder TODOs for:
