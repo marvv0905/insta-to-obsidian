@@ -4,6 +4,7 @@ import sys
 import uuid
 from datetime import date, datetime
 from pathlib import Path
+from urllib.parse import quote as url_quote
 
 import httpx
 from faster_whisper import WhisperModel
@@ -159,8 +160,7 @@ def _extract_title(markdown: str) -> str:
         if line.startswith("# ") and not line.startswith("## "):
             title = line[2:].strip()
             title = re.sub(r'[/:*?"<>|]', "", title)
-            title = re.sub(r"\s+", "_", title)
-            return title[:80].rstrip("_")
+            return title[:80].strip()
     return None
 
 
@@ -184,7 +184,7 @@ def save_to_nextcloud(markdown: str) -> str:
 
     title = _extract_title(markdown) or f"reel_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     filename = f"{title}.md"
-    webdav_url = f"{webdav_base}/{notes_path}/{filename}"
+    webdav_url = f"{webdav_base}/{notes_path}/{url_quote(filename)}"
 
     print(f"[pipeline] Saving to Nextcloud: {webdav_url}")
     _ensure_webdav_folders(webdav_base, notes_path, auth)
