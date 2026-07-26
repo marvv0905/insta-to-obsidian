@@ -1,12 +1,11 @@
-# 📸 Insta-to-Obsidian — AI Second Brain Pipeline
-
+# Insta-to-Obsidian — AI Second Brain Pipeline
 > An agentic workflow that turns Instagram Reels into structured, searchable knowledge inside Obsidian — powered by a self-hosted Discord bot running 24/7 on a Raspberry Pi 5.
 
-## 🧠 The Problem
+## The Problem
 
 Educational Instagram Reels get saved and forgotten. This project closes the loop: paste a link, and the content becomes a permanent, LLM-queryable note in a personal knowledge vault — no manual re-watching or note-taking required.
 
-## ⚙️ How It Works
+## How It Works
 
 ```
 Instagram Reel Link
@@ -36,7 +35,7 @@ Instagram Reel Link
 4. **Store** — The note is written directly into an Obsidian vault, structured for both human browsing and LLM retrieval.
 5. **Query** — An Obsidian RAG plugin (e.g. Smart Connections) enables natural-language search across all saved reel knowledge.
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 | Layer | Tool |
 |---|---|
@@ -48,7 +47,7 @@ Instagram Reel Link
 | Knowledge store | Obsidian (Markdown vault) |
 | Retrieval (planned) | Obsidian RAG plugin (Smart Connections / ObsidianRAG) |
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Python 3.12+
@@ -82,7 +81,7 @@ python bot.py
 
 This bot is designed to run as a `systemd` service on a Raspberry Pi (or any Linux host) so it stays online continuously and auto-restarts on crash or reboot. See [`second_brain_bot_documentation.md`](./second_brain_bot_documentation.md) for the full deployment guide, including the systemd unit file and troubleshooting steps.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 insta-to-obsidian/
@@ -93,7 +92,7 @@ insta-to-obsidian/
 └── .gitignore
 ```
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] Discord bot detects and acknowledges Instagram Reel links
 - [x] 24/7 deployment on Raspberry Pi 5 via systemd
@@ -104,11 +103,3 @@ insta-to-obsidian/
 - [ ] RAG-based querying inside Obsidian
 - [ ] Weekly digest notes for unread summaries
 
-## 📄 Docs
-
-- [Product Requirements Document](./instagram_reel_obsidian_PRD.md)
-- [Setup & Maintenance Guide](./second_brain_bot_documentation.md)
-
-## 📝 License
-
-MIT
