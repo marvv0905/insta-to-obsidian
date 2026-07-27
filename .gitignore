@@ -2,3 +2,7 @@
 bot.env
 second_brain_docs.md
 instagram_reel_obsidian_PRD.md
+.DS_Store
+.codegraph/
+.serena/
+__pycache__/
