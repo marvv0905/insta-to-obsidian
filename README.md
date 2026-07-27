@@ -1,11 +1,14 @@
-# Insta-to-Nextcloud — AI Second Brain Pipeline
-> An agentic workflow that turns Instagram Reels into structured, searchable knowledge — powered by a self-hosted Discord bot running 24/7 on a Raspberry Pi 5.
+# Insta-to-Nextcloud
 
-## The Problem
+A Discord bot that transcribes Instagram Reels, summarizes them with an LLM, and saves the results as structured Markdown notes. Self-hosted on a Raspberry Pi 5 with Nextcloud for storage.
 
-Educational Instagram Reels get saved and forgotten. This project closes the loop: paste a link, and the content becomes a permanent, LLM-queryable note in a personal knowledge vault — no manual re-watching or note-taking required.
+## What It Does
+
+I built this because I kept saving educational Instagram Reels and never revisiting them. Now when I paste a link into a Discord channel, the bot downloads the audio, transcribes it locally, passes the transcript through an LLM for summarization, and saves a structured Markdown note to Nextcloud. The notes are linked into my Obsidian vault via a symlink for browsing and reference.
 
 ## How It Works
+
+The bot listens for Instagram Reel URLs in Discord and runs a pipeline:
 
 ```
 Instagram Reel Link
@@ -26,14 +29,8 @@ Instagram Reel Link
   Save to Nextcloud (WebDAV)
         │
         ▼
-  Browse & Query in Obsidian
+  Browse & Reference in Obsidian
 ```
-
-1. **Capture** — Paste an Instagram Reel link into a private Discord channel.
-2. **Download** — Audio is extracted from the reel via yt-dlp.
-3. **Transcribe** — Speech-to-text runs locally on the Pi using faster-whisper.
-4. **Summarize** — The transcript is passed to an LLM (DeepSeek v4 Flash) which produces a structured Markdown note with frontmatter, tags, key takeaways, and the full transcript.
-5. **Store** — The note is uploaded to a self-hosted Nextcloud server via WebDAV. A symlink connects the Nextcloud folder into an Obsidian vault for browsing and querying.
 
 ## Tech Stack
 
@@ -83,20 +80,20 @@ Run it:
 python bot.py
 ```
 
-### Deploying for 24/7 Uptime
+### Deployment
 
-This bot is designed to run as a `systemd` service on a Raspberry Pi (or any Linux host) so it stays online continuously and auto-restarts on crash or reboot. See [`second_brain_docs.md`](./second_brain_docs.md) for the full deployment guide, including the systemd unit file and troubleshooting steps.
+The bot runs as a `systemd` service on a Raspberry Pi 5 for 24/7 uptime with auto-restart on crash or reboot.
 
 ## Project Structure
 
 ```
 insta-to-obsidian/
-├── bot.py                              # Main Discord bot logic
-├── pipeline.py                         # Audio download, transcription, summarization, Nextcloud save
-├── bot.env                             # Secrets (gitignored)
-├── instagram_reel_obsidian_PRD.md      # Product requirements & architecture
-├── second_brain_docs.md                # Setup, ops, and troubleshooting guide
-└── .gitignore
+├── bot.py                     # Discord bot logic and event handling
+├── pipeline.py                # Audio download, transcription, LLM summarization, Nextcloud upload
+├── README.md
+├── .gitignore
+├── bot.env                    # gitignored (API keys and secrets)
+└── .venv/                     # gitignored (virtual environment)
 ```
 
 ## Roadmap
